@@ -1,4 +1,4 @@
-from typing import Dict, Union, Optional, Tuple
+from typing import Dict, Tuple
 
 
 class NoteBlockSymbol:

@@ -84,9 +84,11 @@ class Sheet:
 				noteblock_symbol_list.append(noteblock_symbol)
 			self.symbol_containers.append(noteblock_symbol_list)
 		print('翻译后音符序列:')
-		if warn_count > 0:
-			print('警告: {}个'.format(warn_count))
 		print(' '.join(map(lambda lst: '({})'.format(' '.join(map(str, lst))), self.symbol_containers)))
+		if warn_count > 0:
+			print('##################')
+			print('>>> 警告: {}个 <<<'.format(warn_count))
+			print('##################')
 
 	def process_time_mark(self):
 		tracks: List[Track] = []
