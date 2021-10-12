@@ -1,48 +1,56 @@
-import json
-from typing import Dict, List
+import os
+import sys
 
-from item import Item, Sheet
-from serializer import Serializable
-
-
-class Configure(Serializable):
-	symbols: Dict[str, str]
-	items: Dict[str, Item]
+from item import ShulkerSheetStorage
+from sheet import Sheet
+from symbol import NoteBlockSymbol
+from track import TrackItem
 
 
-config = Configure.get_default()
+def dump_items():
+	storage = ShulkerSheetStorage()
+	for i in range(25):
+		storage.add_item(TrackItem(NoteBlockSymbol.of(i), 0).to_items()[0])
+	storage.add_item(TrackItem(NoteBlockSymbol.empty(), 0).to_items()[0])
+	print('音符序列模板盒')
+	print('\n'.join(storage.done_and_export()))
+
+	storage = ShulkerSheetStorage()
+	for i in range(16):
+		storage.add_item(TrackItem(NoteBlockSymbol.empty(), i).to_items()[1])
+	print('时间序列模板盒')
+	print('\n'.join(storage.done_and_export()))
+	print()
 
 
 def main():
-	with open('config.json') as file:
-		config.update_from(json.load(file))
+	if not os.path.isfile('input.txt'):
+		print('输入文件"input.txt"未找到')
+		return
+	with open('input.txt', encoding='utf8') as f:
+		sheet = Sheet.load(f.read())
+	sheet.process_data()
+	sheet.process_time_mark()
+	sheet.generate_command()
 
-	sequence: List[str] = []
-	with open('input.txt') as file:
-		for line in file.readlines():
-			for seg in line.strip().split(' '):
-				if len(seg) > 0:
-					seg = config.symbols.get(seg, seg)
-					sequence.append(seg)
 
-	sheet = Sheet()
-	for seg in sequence:
-		item = config.items.get(seg)
-		if item is not None:
-			sheet.add_item(Item(
-				id=item.id,
-				count=1,
-				name=item.name
-			))
-		else:
-			print('Unknown segment {}'.format(seg))
+class FakeStdOut(object):
+	def __init__(self):
+		self.terminal = sys.stdout
+		open('output.txt', 'w').close()
 
-	sheet.done()
-	with open('output.txt', 'w') as file:
-		for shulker in sheet.shulkers:
-			file.write(shulker.to_give_command())
-			file.write('\n')
+	def write(self, message):
+		self.terminal.write(message)
+		with open('output.txt', 'a', encoding='utf8') as f:
+			f.write(message)
 
 
 if __name__ == '__main__':
+	wrapper = FakeStdOut()
+	sys.stdout = wrapper
+	# dump_items()
 	main()
+	sys.stdout = wrapper.terminal
+	print()
+	print('程序的输出文本也可在output.txt中找到')
+	input('按回车退出程序...')

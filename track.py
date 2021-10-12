@@ -1,6 +1,11 @@
-from typing import List
+import json
+from typing import List, Tuple
 
+from item import Item
 from symbol import NoteBlockSymbol
+
+with open('mapping.json') as file:
+	_mapping = json.load(file)
 
 
 class TimeMark:
@@ -34,6 +39,12 @@ class TrackItem:
 
 	def __str__(self):
 		return '{}@{}'.format(self.symbol, self.time)
+
+	def to_items(self) -> Tuple[Item, Item]:
+		return (
+			Item(id=_mapping['symbol'][str(self.symbol.note)], name=str(self.symbol), count=1),
+			Item(id=_mapping['time_mark'][str(self.__time_mark)], name=self.time, count=1),
+		)
 
 
 class Track(List[TrackItem]):

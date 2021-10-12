@@ -2,6 +2,7 @@ import collections
 from enum import Enum
 from typing import Optional, List, Dict
 
+from item import ShulkerSheetStorage
 from symbol import NoteBlockSymbol, SheetSymbol
 from track import Track, TrackItem, TimeMark
 
@@ -24,6 +25,7 @@ class Sheet:
 		self.rhythm_mode: RhythmMode = rhythm_mode
 		self.data_line = data_line
 		self.symbol_containers: List[List[NoteBlockSymbol]] = []
+		self.tracks: List[Track] = []
 
 	@classmethod
 	def load(cls, content: str) -> 'Sheet':
@@ -47,6 +49,7 @@ class Sheet:
 		print('节奏模式: {}'.format(self.rhythm_mode.value))
 		data = self.data_line.replace('|', '')
 		prev_symbols = None
+		warn_count = 0
 		for segment in data.split(' '):
 			if not segment:
 				continue
@@ -77,47 +80,27 @@ class Sheet:
 					except ValueError:
 						noteblock_symbol = self.base_tonality.shift(delta, clamp=True)
 						print('[警告] 简谱音符{}偏移{}后超出音符盒音符范围，使用边界值{}近似替代'.format(sheet_symbol, delta, noteblock_symbol))
+						warn_count += 1
 				noteblock_symbol_list.append(noteblock_symbol)
 			self.symbol_containers.append(noteblock_symbol_list)
+		print('翻译后音符序列:')
+		if warn_count > 0:
+			print('警告: {}个'.format(warn_count))
+		print(' '.join(map(lambda lst: '({})'.format(' '.join(map(str, lst))), self.symbol_containers)))
 
 	def process_time_mark(self):
 		tracks: List[Track] = []
 		for idx, symbols in enumerate(self.symbol_containers):
 			required_items = []
-
-			def append(idx: int, mark: str):
-				required_items.append(TrackItem(symbols[idx], TimeMark.of(mark)))
-
-			# 若只有一个数字 - 四分音符
-			if len(symbols) == 1:
-				if self.rhythm_mode == RhythmMode.long_tone:  # 长音
-					append(0, '1111')
-				else:  # 短音
-					append(0, '1000')
-			# 若有两个数字 - 两个八分音符
-			elif len(symbols) == 2:
-				# 若两个数字表示的音符相同
-				if symbols[0] == symbols[1]:
-					if self.rhythm_mode == RhythmMode.long_tone:  # 长音
-						append(0, '1111')
-					else:  # 短音
-						append(0, '1010')
-				# 若两个数字表示的音符不同
-				else:
-					if self.rhythm_mode == RhythmMode.long_tone:  # 长音
-						append(0, '1100')
-						append(1, '0011')
-					else:  # 短音
-						append(0, '1000')
-						append(1, '0010')
-			# 若有四个数字 - 四个十六分音符
-			elif len(symbols) == 4:
-				symbol2times: Dict[NoteBlockSymbol, int] = collections.defaultdict(lambda: TimeMark.of('0000'))
-				symbol2times[symbols[0]] |= TimeMark.of('1000')
-				symbol2times[symbols[1]] |= TimeMark.of('0100')
-				symbol2times[symbols[2]] |= TimeMark.of('0010')
-				symbol2times[symbols[3]] |= TimeMark.of('0001')
-				for symbol, time_mark in symbol2times.items():
+			symbol2times: Dict[NoteBlockSymbol, int] = collections.defaultdict(lambda: TimeMark.of('0000'))
+			seg_len = {1: 4, 2: 2, 4: 1}[len(symbols)]
+			for i, symbol in enumerate(symbols):
+				len_1 = 1 if self.rhythm_mode == RhythmMode.short_tone else seg_len
+				len_prev_0 = seg_len * i
+				marker_text = ('0' * len_prev_0 + '1' * len_1).ljust(4, '0')
+				symbol2times[symbol] |= TimeMark.of(marker_text)
+			for symbol, time_mark in symbol2times.items():
+				if symbol != NoteBlockSymbol.empty():
 					required_items.append(TrackItem(symbol, time_mark))
 
 			if len(tracks) < len(required_items):
@@ -130,14 +113,30 @@ class Sheet:
 				item = required_items[i] if i < len(required_items) else TrackItem.empty()
 				tracks[i].append(item)
 
+		self.tracks = tracks
+		print()
+		print('====== 音轨预览 ====== ')
 		print('共需要{}条音轨'.format(len(tracks)))
 		for i, track in enumerate(tracks):
-			print('音轨#{}'.format(i))
-			print('  ' + ' '.join(map(lambda track_item: str(track_item.symbol), track)))
+			print('音轨#{}'.format(i + 1))
+			print('  ' + ' '.join(map(lambda track_item: str(track_item.symbol).rjust(2, ' ').ljust(4, ' '), track)))
 			print('  ' + ' '.join(map(lambda track_item: str(track_item.time), track)))
 
-
-if __name__ == '__main__':
-	sheet = Sheet.load(open('input.txt', encoding='utf8').read())
-	sheet.process_data()
-	sheet.process_time_mark()
+	def generate_command(self):
+		print()
+		print('====== 指令输出 ====== ')
+		for i, track in enumerate(self.tracks):
+			print('音轨#{}'.format(i + 1))
+			storage_symbol = ShulkerSheetStorage()
+			storage_time_mark = ShulkerSheetStorage()
+			for track_item in track:
+				storage_symbol.add_item(track_item.to_items()[0])
+				storage_time_mark.add_item(track_item.to_items()[1])
+			cmd_s = storage_symbol.done_and_export()
+			cmd_t = storage_time_mark.done_and_export()
+			print('  音符序列需要{}个潜影盒:'.format(len(cmd_s)))
+			for cmd in cmd_s:
+				print('\t{}'.format(cmd))
+			print('  节奏序列需要{}个潜影盒:'.format(len(cmd_s)))
+			for cmd in cmd_t:
+				print('\t{}'.format(cmd))
