@@ -4,6 +4,9 @@ from typing import List, Optional
 
 from serializer import Serializable
 
+with open('mapping.json') as file:
+	MAPPING_DATA = json.load(file)
+
 
 def to_json_str(data) -> str:
 	return json.dumps(data, ensure_ascii=False, separators=(',', ':'))
@@ -11,7 +14,7 @@ def to_json_str(data) -> str:
 
 class Item(Serializable):
 	id: str
-	name: str
+	name: Optional[str] = None
 	count: Optional[str] = None
 	slot: Optional[str] = None
 
@@ -104,6 +107,9 @@ class ShulkerSheetStorage:
 			self.__pending_items = self.__pending_items[27:]
 
 	def done(self) -> List[str]:
+		if len(self.__pending_items) > 0:
+			for i in range(27 - len(self.__pending_items)):
+				self.add_item(Item(id=MAPPING_DATA['dummy'][i % 2], count=1, name='dummy'))
 		self.__add_shulker(self.__pending_items)
 		self.__pending_items.clear()
 		return [shulker.to_give_command() for shulker in self.__shulkers]

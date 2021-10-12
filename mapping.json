@@ -1,6 +1,6 @@
 {
 	"symbol": {
-	    "-1": "minecraft:oak_fence",
+	    "-1": "minecraft:stone",
 	    "0": "minecraft:white_concrete",
 	    "1": "minecraft:orange_concrete",
 	    "2": "minecraft:magenta_concrete",
@@ -44,5 +44,9 @@
 	    "13": "minecraft:green_carpet",
 	    "14": "minecraft:red_carpet",
 	    "15": "minecraft:black_carpet"
-	}
+	},
+	"dummy": [
+		"minecraft:birch_fence",
+		"minecraft:spruce_fence"
+	]
 }
