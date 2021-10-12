@@ -64,6 +64,7 @@ if __name__ == '__main__':
 			main()
 		except:
 			traceback.print_exc()
+			print('漏虫了，可能是输入有虫，也有可能是程序有虫，看看上面说啥')
 	print()
 	print('程序的输出文本也可在output.txt中找到')
 	input('按回车退出程序...')
