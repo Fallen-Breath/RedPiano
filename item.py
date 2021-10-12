@@ -5,6 +5,10 @@ from typing import List, Optional
 from serializer import Serializable
 
 
+def to_json_str(data) -> str:
+	return json.dumps(data, ensure_ascii=False, separators=(',', ':'))
+
+
 class Item(Serializable):
 	id: str
 	name: str
@@ -28,7 +32,7 @@ class Item(Serializable):
 	def append_name_tag(self, tags: dict):
 		if self.name is not None:
 			tags['display'] = {
-				'Name': json.dumps({'text': self.name}, ensure_ascii=False)
+				'Name': to_json_str(self.name)
 			}
 
 	def append_block_entity_tag(self, tags: dict):
@@ -43,7 +47,11 @@ class Container(Item, ABC):
 		nbt = {}
 		self.append_name_tag(nbt)
 		self.append_block_entity_tag(nbt)
-		return '/give @p {}{}'.format(self.id, json.dumps(nbt, ensure_ascii=False))
+		return '/give @p {}{}'.format(self.id, to_json_str(nbt))
+
+	def add_item(self, item: Item):
+		item.slot = len(self.items)
+		self.items.append(item)
 
 	def append_block_entity_tag(self, tags: dict):
 		tags['BlockEntityTag'] = {
@@ -59,6 +67,9 @@ class Chest(Container):
 	id: str = 'minecraft:chest'
 
 
+CMD_BLOCK_LIMIT = 32000  # real value: 32500
+
+
 class ShulkerSheetStorage:
 	def __init__(self, name: Optional[str] = None):
 		self.name = name
@@ -70,12 +81,11 @@ class ShulkerSheetStorage:
 		if len(items) == 0:
 			return
 		shulker = Shulker.get_default()
-		for i, item in enumerate(items):
-			shulker.items.append(Item(
+		for item in items:
+			shulker.add_item(Item(
 				id=item.id,
 				count=item.count,
-				name=item.name,
-				slot=i
+				name=item.name
 			))
 		self.__shulkers.append(shulker)
 
@@ -102,19 +112,29 @@ class ShulkerSheetStorage:
 		return [shulker.to_give_command() for shulker in self.__shulkers]
 
 	def export_give_chest_command(self) -> List[str]:
+		def get_chest():
+			nonlocal chest, chest_cnt
+			if chest is not None:
+				chest.name += str(chest_cnt)
+			chest = Chest.get_default()
+			chests.append(chest)
+			chest_cnt += 1
+			chest.name = self.name
+			if chest_cnt > 1:
+				chest.name += str(chest_cnt)
+
 		chests: List[Chest] = []
 		chest: Optional[Chest] = None
+		chest_cnt = 0
 		for i, shulker in enumerate(self.__shulkers):
 			if chest is None:
-				chest = Chest.get_default()
-				chest.name = self.name
-			shulker.slot = i
+				get_chest()
 			shulker.count = 1
-			chest.items.append(shulker)
+			chest.add_item(shulker)
+			if len(chest.to_give_command()) > CMD_BLOCK_LIMIT:
+				chest.items.pop(len(chest.items) - 1)
+				get_chest()
+				chest.add_item(shulker)
 			if len(chest.items) == 27:
-				chests.append(chest)
 				chest = None
-		if chest is not None:
-			chests.append(chest)
 		return [chest.to_give_command() for chest in chests]
-
