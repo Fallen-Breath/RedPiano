@@ -1,8 +1,25 @@
 import copy
 from abc import ABC
-from typing import Union, TypeVar, List, Dict, Type
+from enum import EnumMeta
+from threading import Lock
+from typing import Union, TypeVar, List, Dict, Type, get_type_hints
 
 T = TypeVar('T')
+
+
+def _get_type_hints(cls: Type):
+	try:
+		return get_type_hints(cls)
+	except:
+		return get_type_hints(cls, globalns={})
+
+
+def _get_origin(cls: Type):
+	return getattr(cls, '__origin__', None)
+
+
+def _get_args(cls: Type) -> tuple:
+	return getattr(cls, '__args__', ())
 
 
 def serialize(obj) -> Union[None, int, float, str, list, dict]:
@@ -12,8 +29,10 @@ def serialize(obj) -> Union[None, int, float, str, list, dict]:
 		return list(map(serialize, obj))
 	elif isinstance(obj, dict):
 		return dict(map(lambda t: (t[0], serialize(t[1])), obj.items()))
+	elif isinstance(obj.__class__, EnumMeta):
+		return obj.name
 	try:
-		attr_dict = vars(obj)
+		attr_dict = vars(obj).copy()
 		# don't serialize protected fields
 		for attr_name in list(attr_dict.keys()):
 			if attr_name.startswith('_'):
@@ -24,36 +43,54 @@ def serialize(obj) -> Union[None, int, float, str, list, dict]:
 		return serialize(attr_dict)
 
 
+_BASIC_CLASSES = (type(None), bool, int, float, str, list, dict)
+
+
 def deserialize(data, cls: Type[T], *, error_at_missing=False, error_at_redundancy=False) -> T:
+	# in case None instead of NoneType is passed
+	if cls is None:
+		cls = type(None)
+	# Union
+	# Unpack Union first since the target class is not confirmed yet
+	if _get_origin(cls) == Union:
+		for possible_cls in _get_args(cls):
+			try:
+				return deserialize(data, possible_cls, error_at_missing=error_at_missing, error_at_redundancy=error_at_redundancy)
+			except (TypeError, ValueError):
+				pass
+		raise TypeError('Data in type {} cannot match any candidate of target class {}'.format(type(data), cls))
 	# Element (None, int, float, str, list, dict)
 	# For list and dict, since it doesn't have any type hint, we choose to simply return the data
-	if type(data) is cls:
+	elif cls in _BASIC_CLASSES and type(data) is cls:
 		return data
 	# float thing
 	elif cls is float and isinstance(data, int):
 		return float(data)
 	# List
-	elif isinstance(data, list) and getattr(cls, '__origin__', None) == List[int].__origin__:
-		element_type = getattr(cls, '__args__')[0]
+	elif _get_origin(cls) == List[int].__origin__ and isinstance(data, list):
+		element_type = _get_args(cls)[0]
 		return list(map(lambda e: deserialize(e, element_type, error_at_missing=error_at_missing, error_at_redundancy=error_at_redundancy), data))
 	# Dict
-	elif isinstance(data, dict) and getattr(cls, '__origin__', None) == Dict[int, int].__origin__:
-		key_type = getattr(cls, '__args__')[0]
-		val_type = getattr(cls, '__args__')[1]
+	elif _get_origin(cls) == Dict[int, int].__origin__ and isinstance(data, dict):
+		key_type = _get_args(cls)[0]
+		val_type = _get_args(cls)[1]
 		instance = {}
 		for key, value in data.items():
 			deserialized_key = deserialize(key, key_type, error_at_missing=error_at_missing, error_at_redundancy=error_at_redundancy)
 			deserialized_value = deserialize(value, val_type, error_at_missing=error_at_missing, error_at_redundancy=error_at_redundancy)
 			instance[deserialized_key] = deserialized_value
 		return instance
+	# Enum
+	elif isinstance(cls, EnumMeta) and isinstance(data, str):
+		return cls[data]
 	# Object
-	elif isinstance(data, dict):
+	elif cls not in _BASIC_CLASSES and isinstance(cls, type) and isinstance(data, dict):
 		try:
 			result = cls()
-		except TypeError:
-			raise TypeError('Parameter cls needs to be a type instance since data is a dict, but {} found'.format(type(cls))) from None
+		except:
+			raise TypeError('Failed to construct instance of class {}'.format(type(cls)))
 		input_key_set = set(data.keys())
-		for attr_name, attr_type in getattr(cls, '__annotations__', {}).items():
+		for attr_name, attr_type in _get_type_hints(cls).items():
 			if not attr_name.startswith('_'):
 				if attr_name in data:
 					result.__setattr__(attr_name, deserialize(data[attr_name], attr_type, error_at_missing=error_at_missing, error_at_redundancy=error_at_redundancy))
@@ -67,25 +104,34 @@ def deserialize(data, cls: Type[T], *, error_at_missing=False, error_at_redundan
 		if isinstance(result, Serializable):
 			result.on_deserialization()
 		return result
-	# Union
-	elif getattr(cls, '__origin__', None) == Union:
-		for possible_cls in getattr(cls, '__args__'):
-			try:
-				return deserialize(data, possible_cls, error_at_missing=error_at_missing, error_at_redundancy=error_at_redundancy)
-			except (TypeError, ValueError):
-				pass
-		raise TypeError('Data in type {} cannot match any candidate of target class {}'.format(type(data), cls))
 	else:
 		raise TypeError('Unsupported input type: expected class {} but found data with class {}'.format(cls, type(data)))
 
 
 class Serializable(ABC):
+	__annotations_cache: dict = None
+	__annotations_lock = Lock()
+
 	def __init__(self, **kwargs):
-		annotations = getattr(type(self), '__annotations__', {})
 		for key in kwargs.keys():
-			if key not in annotations:
-				raise KeyError('Unknown key received in __init__: {}'.format(key))
+			if key not in self.get_annotations_fields():
+				raise KeyError('Unknown key received in __init__ of class {}: {}'.format(self.__class__, key))
 		vars(self).update(kwargs)
+
+	@classmethod
+	def __get_annotation_dict(cls) -> dict:
+		public_fields = {}
+		for attr_name, attr_type in _get_type_hints(cls).items():
+			if not attr_name.startswith('_'):
+				public_fields[attr_name] = attr_type
+		return public_fields
+
+	@classmethod
+	def get_annotations_fields(cls) -> Dict[str, Type]:
+		with cls.__annotations_lock:
+			if cls.__annotations_cache is None:
+				cls.__annotations_cache = cls.__get_annotation_dict()
+		return cls.__annotations_cache
 
 	def serialize(self) -> dict:
 		return serialize(self)

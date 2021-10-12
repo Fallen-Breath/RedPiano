@@ -1,4 +1,5 @@
 import json
+from abc import ABC
 from typing import List, Optional
 
 from serializer import Serializable
@@ -11,13 +12,17 @@ class Item(Serializable):
 	slot: Optional[str] = None
 
 	def to_dict(self) -> dict:
+		tags = {
+			'display': {
+				'Name': json.dumps({'text': self.name}, ensure_ascii=False)
+			}
+		}
+		be_tag = self.get_block_entity_tag()
+		if be_tag is not None:
+			tags['BlockEntityTag'] = be_tag
 		ret = {
 			'id': self.id,
-			'tag': {
-				'display': {
-					'Name': json.dumps({'text': self.name}, ensure_ascii=False)
-				}
-			}
+			'tag': tags
 		}
 		if self.slot is not None:
 			ret['Slot'] = self.slot
@@ -25,8 +30,11 @@ class Item(Serializable):
 			ret['Count'] = self.count
 		return ret
 
+	def get_block_entity_tag(self) -> Optional[dict]:
+		return None
 
-class Shulker(Serializable):
+
+class Container(Item, ABC):
 	items: List[Item] = []
 	name: Optional[str] = None
 
@@ -36,10 +44,21 @@ class Shulker(Serializable):
 			nbt['display'] = {
 				'Name': json.dumps({'text': self.name}, ensure_ascii=False)
 			}
-		nbt['BlockEntityTag'] = {
+		nbt['BlockEntityTag'] = self.get_block_entity_tag()
+		return '/give @p {}{}'.format(self.id, json.dumps(nbt, ensure_ascii=False))
+
+	def get_block_entity_tag(self) -> Optional[dict]:
+		return {
 			'Items': list(map(lambda item: item.to_dict(), self.items))
 		}
-		return '/give @p minecraft:shulker_box{}'.format(json.dumps(nbt, ensure_ascii=False))
+
+
+class Shulker(Container):
+	id: str = 'minecraft:shulker_box'
+
+
+class Chest(Container):
+	id: str = 'minecraft:chest'
 
 
 class ShulkerSheetStorage:
@@ -52,7 +71,7 @@ class ShulkerSheetStorage:
 		assert len(items) <= 27
 		if len(items) == 0:
 			return
-		shulker = Shulker(name='{}-{}'.format(self.name, len(self.__shulkers) + 1) if self.name is not None else None)
+		shulker = Shulker.get_default()
 		for i, item in enumerate(items):
 			shulker.items.append(Item(
 				id=item.id,
@@ -76,11 +95,28 @@ class ShulkerSheetStorage:
 			self.__add_shulker(self.__pending_items[:27])
 			self.__pending_items = self.__pending_items[27:]
 
-	def done_and_export(self) -> List[str]:
+	def done(self) -> List[str]:
 		self.__add_shulker(self.__pending_items)
-		# yeet counter if it's the only one
-		if len(self.__shulkers) == 1 and self.__shulkers[0].name is not None:
-			self.__shulkers[0].name = self.__shulkers[0].name.rsplit('-', 1)[0]
 		self.__pending_items.clear()
 		return [shulker.to_give_command() for shulker in self.__shulkers]
+
+	def export_give_command(self) -> List[str]:
+		return [shulker.to_give_command() for shulker in self.__shulkers]
+
+	def export_give_chest_command(self) -> List[str]:
+		chests: List[Chest] = []
+		chest: Optional[Chest] = None
+		for i, shulker in enumerate(self.__shulkers):
+			if chest is None:
+				chest = Chest.get_default()
+				chest.name = self.name
+			shulker.slot = i
+			shulker.count = 1
+			chest.items.append(shulker)
+			if len(chest.items) == 27:
+				chests.append(chest)
+				chest = None
+		if chest is not None:
+			chests.append(chest)
+		return [chest.to_give_command() for chest in chests]
 

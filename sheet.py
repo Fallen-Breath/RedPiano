@@ -134,11 +134,13 @@ class Sheet:
 			for track_item in track:
 				storage_symbol.add_item(track_item.to_items()[0])
 				storage_time_mark.add_item(track_item.to_items()[1])
-			cmd_s = storage_symbol.done_and_export()
-			cmd_t = storage_time_mark.done_and_export()
-			print('  音符序列需要{}个潜影盒:'.format(len(cmd_s)))
+			storage_symbol.done()
+			storage_time_mark.done()
+			cmd_s = storage_symbol.export_give_chest_command()
+			cmd_t = storage_time_mark.export_give_chest_command()
+			print('  音符序列需要{}个潜影盒:'.format(len(storage_symbol.export_give_command())))
 			for cmd in cmd_s:
 				print('\t{}'.format(cmd))
-			print('  节奏序列需要{}个潜影盒:'.format(len(cmd_s)))
+			print('  节奏序列需要{}个潜影盒:'.format(len(storage_time_mark.export_give_command())))
 			for cmd in cmd_t:
 				print('\t{}'.format(cmd))
