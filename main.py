@@ -1,5 +1,7 @@
 import os
 import sys
+import traceback
+from contextlib import contextmanager
 
 from item import ShulkerSheetStorage
 from sheet import Sheet
@@ -44,13 +46,24 @@ class FakeStdOut(object):
 		with open('output.txt', 'a', encoding='utf8') as f:
 			f.write(message)
 
+	@classmethod
+	@contextmanager
+	def wrap(cls):
+		wrapper = FakeStdOut()
+		sys.stdout = wrapper
+		try:
+			yield
+		finally:
+			sys.stdout = wrapper.terminal
+
 
 if __name__ == '__main__':
-	wrapper = FakeStdOut()
-	sys.stdout = wrapper
-	# dump_items()
-	main()
-	sys.stdout = wrapper.terminal
+	with FakeStdOut.wrap():
+		try:
+			# dump_items()
+			main()
+		except:
+			traceback.print_exc()
 	print()
 	print('程序的输出文本也可在output.txt中找到')
 	input('按回车退出程序...')
