@@ -12,14 +12,9 @@ class Item(Serializable):
 	slot: Optional[str] = None
 
 	def to_dict(self) -> dict:
-		tags = {
-			'display': {
-				'Name': json.dumps({'text': self.name}, ensure_ascii=False)
-			}
-		}
-		be_tag = self.get_block_entity_tag()
-		if be_tag is not None:
-			tags['BlockEntityTag'] = be_tag
+		tags = {}
+		self.append_name_tag(tags)
+		self.append_block_entity_tag(tags)
 		ret = {
 			'id': self.id,
 			'tag': tags
@@ -30,8 +25,14 @@ class Item(Serializable):
 			ret['Count'] = self.count
 		return ret
 
-	def get_block_entity_tag(self) -> Optional[dict]:
-		return None
+	def append_name_tag(self, tags: dict):
+		if self.name is not None:
+			tags['display'] = {
+				'Name': json.dumps({'text': self.name}, ensure_ascii=False)
+			}
+
+	def append_block_entity_tag(self, tags: dict):
+		pass
 
 
 class Container(Item, ABC):
@@ -40,15 +41,12 @@ class Container(Item, ABC):
 
 	def to_give_command(self) -> str:
 		nbt = {}
-		if self.name is not None:
-			nbt['display'] = {
-				'Name': json.dumps({'text': self.name}, ensure_ascii=False)
-			}
-		nbt['BlockEntityTag'] = self.get_block_entity_tag()
+		self.append_name_tag(nbt)
+		self.append_block_entity_tag(nbt)
 		return '/give @p {}{}'.format(self.id, json.dumps(nbt, ensure_ascii=False))
 
-	def get_block_entity_tag(self) -> Optional[dict]:
-		return {
+	def append_block_entity_tag(self, tags: dict):
+		tags['BlockEntityTag'] = {
 			'Items': list(map(lambda item: item.to_dict(), self.items))
 		}
 
