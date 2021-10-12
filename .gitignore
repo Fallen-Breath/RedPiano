@@ -2,4 +2,5 @@
 /dist/
 /.idea/
 /main.spec
+input.txt
 output.txt

@@ -129,8 +129,8 @@ class Sheet:
 		print('====== 指令输出 ====== ')
 		for i, track in enumerate(self.tracks):
 			print('音轨#{}'.format(i + 1))
-			storage_symbol = ShulkerSheetStorage()
-			storage_time_mark = ShulkerSheetStorage()
+			storage_symbol = ShulkerSheetStorage('音轨#{}音符序列'.format(i + 1))
+			storage_time_mark = ShulkerSheetStorage('音轨#{}节奏序列'.format(i + 1))
 			for track_item in track:
 				storage_symbol.add_item(track_item.to_items()[0])
 				storage_time_mark.add_item(track_item.to_items()[1])

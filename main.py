@@ -10,14 +10,14 @@ from track import TrackItem
 
 
 def dump_items():
-	storage = ShulkerSheetStorage()
+	storage = ShulkerSheetStorage('音符序列模板盒')
 	for i in range(25):
 		storage.add_item(TrackItem(NoteBlockSymbol.of(i), 0).to_items()[0])
 	storage.add_item(TrackItem(NoteBlockSymbol.empty(), 0).to_items()[0])
 	print('音符序列模板盒')
 	print('\n'.join(storage.done_and_export()))
 
-	storage = ShulkerSheetStorage()
+	storage = ShulkerSheetStorage('时间序列模板盒')
 	for i in range(16):
 		storage.add_item(TrackItem(NoteBlockSymbol.empty(), i).to_items()[1])
 	print('时间序列模板盒')
