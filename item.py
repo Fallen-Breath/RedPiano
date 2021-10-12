@@ -8,8 +8,8 @@ with open('mapping.json') as file:
 	MAPPING_DATA = json.load(file)
 
 
-def to_json_str(data) -> str:
-	return json.dumps(data, ensure_ascii=False, separators=(',', ':'))
+def to_json_str(data, compact: bool = True) -> str:
+	return json.dumps(data, ensure_ascii=False, separators=(',', ':') if compact else None)
 
 
 class Item(Serializable):
@@ -35,7 +35,7 @@ class Item(Serializable):
 	def append_name_tag(self, tags: dict):
 		if self.name is not None:
 			tags['display'] = {
-				'Name': to_json_str(self.name)
+				'Name': to_json_str({'text': self.name}, compact=False)  # use fatty format for compatibility
 			}
 
 	def append_block_entity_tag(self, tags: dict):

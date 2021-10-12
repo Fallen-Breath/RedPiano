@@ -128,7 +128,7 @@ class Sheet:
 		print()
 		print('====== 指令输出 ====== ')
 		for i, track in enumerate(self.tracks):
-			print('音轨#{}'.format(i + 1))
+			print('> 音轨#{}'.format(i + 1))
 			storage_symbol = ShulkerSheetStorage('音轨#{}音符序列'.format(i + 1))
 			storage_time_mark = ShulkerSheetStorage('音轨#{}节奏序列'.format(i + 1))
 			for track_item in track:
@@ -138,9 +138,8 @@ class Sheet:
 			storage_time_mark.done()
 			cmd_s = storage_symbol.export_give_chest_command()
 			cmd_t = storage_time_mark.export_give_chest_command()
-			print('  音符序列需要{}个潜影盒:'.format(len(storage_symbol.export_give_command())))
-			for cmd in cmd_s:
-				print('\t{}'.format(cmd))
-			print('  节奏序列需要{}个潜影盒:'.format(len(storage_time_mark.export_give_command())))
-			for cmd in cmd_t:
-				print('\t{}'.format(cmd))
+			print('音符序列需要{}个潜影盒:'.format(len(storage_symbol.export_give_command())))
+			print('\n'.join(cmd_s))
+			print('节奏序列需要{}个潜影盒:'.format(len(storage_time_mark.export_give_command())))
+			print('\n'.join(cmd_t))
+			print()
