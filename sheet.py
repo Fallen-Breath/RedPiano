@@ -32,8 +32,8 @@ class Sheet:
 		tonality = None
 		rhythm_mode = RhythmMode.short_tone
 		data_line = ''
-		for line in content.splitlines():
-			if line.upper().startswith('1='):
+		for line in content.upper().splitlines():
+			if line.startswith('1='):
 				tonality = NoteBlockSymbol.ofTonality(line[2:])
 			rm = RhythmMode.guess_line(line)
 			if rm is not None:
