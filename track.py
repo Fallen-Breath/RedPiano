@@ -16,7 +16,7 @@ class TimeMark:
 		return value
 
 
-class TrackItem:
+class RedPianoTrackItem:
 	symbol: NoteBlockSymbol
 	__time_mark: int
 
@@ -30,8 +30,8 @@ class TrackItem:
 		return bin(self.__time_mark)[2:].rjust(4, '0')
 
 	@classmethod
-	def empty(cls) -> 'TrackItem':
-		return TrackItem(NoteBlockSymbol.empty(), 0)
+	def empty(cls) -> 'RedPianoTrackItem':
+		return RedPianoTrackItem(NoteBlockSymbol.empty(), 0)
 
 	def __str__(self):
 		return '{}@{}'.format(self.symbol, self.time)
@@ -43,5 +43,5 @@ class TrackItem:
 		)
 
 
-class Track(List[TrackItem]):
+class RedPianoTrack(List[RedPianoTrackItem]):
 	pass

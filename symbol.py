@@ -73,7 +73,7 @@ class SheetSymbol:
 		suffix = ''
 		if not text[0].isdigit():
 			prefix = text[0]
-			assert prefix in '#b', '非法升降记号前缀{}'.format(prefix)
+			assert prefix in '#B', '非法升降记号前缀{}'.format(prefix)
 			text = text[1:]
 		assert len(text) > 0 and text[0].isdigit(), '剩余字符串{}首字母不是数字'.format(text)
 		note = int(text[0])
@@ -102,7 +102,7 @@ class SheetSymbol:
 		delta = self.__NOTE_DELTA[self.note]
 		if self.prefix == '#':
 			delta += 1
-		elif self.prefix == 'b':
+		elif self.prefix == 'B':
 			delta -= 1
 		if self.suffix == "'":
 			delta += 12

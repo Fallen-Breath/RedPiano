@@ -58,7 +58,7 @@ class Container(Item, ABC):
 
 	def append_block_entity_tag(self, tags: dict):
 		tags['BlockEntityTag'] = {
-			'Items': list(map(lambda item: item.to_dict(), self.items))
+			'Items': list(map(Item.to_dict, self.items))
 		}
 
 
