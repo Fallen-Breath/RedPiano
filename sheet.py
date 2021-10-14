@@ -65,7 +65,7 @@ class Sheet:
 					try:
 						sheet_symbol, segment = SheetSymbol.read(segment)
 					except Exception as e:
-						raise ValueError('Failed to read SheetSymbol from {}: {}'.format(segment, e))
+						raise ValueError('从{}读取简谱音符失败: {}'.format(segment, e))
 					symbols.append(sheet_symbol)
 			assert len(symbols) in [1, 2, 4], '空格之间的简谱音符个数{}不合法'.format(len(symbols))
 			prev_symbols = symbols

@@ -78,10 +78,9 @@ class SheetSymbol:
 		assert len(text) > 0 and text[0].isdigit(), '剩余字符串{}首字母不是数字'.format(text)
 		note = int(text[0])
 		text = text[1:]
-		assert 0 <= note <= 7
-		if len(text) > 0 and not text[0].isdigit():
+		assert 0 <= note <= 7, '简谱数字{}超出了0~7范围'.format(note)
+		if len(text) > 0 and text[0] in ",'":
 			suffix = text[0]
-			assert suffix in ",'", '非法升跨八度符号后缀{}'.format(suffix)
 			text = text[1:]
 		return cls(note, prefix, suffix), text
 
