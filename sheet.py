@@ -39,11 +39,13 @@ class Sheet:
 
 	@classmethod
 	def load(cls, content: str) -> 'Sheet':
-		segments_list: List[List[Segment]] = []
+		segments_list: Dict[int, List[Segment]] = collections.defaultdict(list)
 		tonality = None
 		rhythm_mode = RhythmMode.short_tone
-		segments: List[Segment] = []
+		segments_id = 0
 		for line in content.upper().splitlines():
+			if '//' in line:
+				line = line.split('//')[0]
 			if line.startswith('1='):
 				tonality = NoteBlockSymbol.ofTonality(line[2:])
 			rm = RhythmMode.guess_line(line)
@@ -51,20 +53,20 @@ class Sheet:
 				rhythm_mode = rm
 			if line.startswith('|'):
 				assert tonality is not None, '音高基准未声明，无法输入简谱音轨'
-				for segment in line.replace('|', '').split(' '):
+				segments: List[Segment] = []
+				for segment in line.replace('|', '').replace('\t', ' ').split(' '):
 					if len(segment) > 0:
 						segments.append(Segment(segment, tonality))
+				segments_list[segments_id].extend(segments)
+				segments_id += 1
 			# 多个简谱音轨间用空行隔开
-			elif len(line) == 0 and len(segments) > 0:
-				segments_list.append(segments.copy())
-				segments.clear()
-		if len(segments) > 0:
-			segments_list.append(segments)
+			elif len(line) == 0:
+				segments_id = 0
 		assert len(segments_list) > 0, '未找到简谱音轨'
 		len_ = len(segments_list[0])
-		assert all(map(lambda lst: len(lst) == len_, segments_list)), '存在长度不一致的简谱音轨。简谱音轨长度列表为：{}'.format(' ,'.join(map(str, map(len, segments_list))))
+		assert all(map(lambda lst: len(lst) == len_, segments_list.values())), '存在长度不一致的简谱音轨。简谱音轨长度列表为：{}'.format(' ,'.join(map(str, map(len, segments_list.values()))))
 		print('成功读取{}条简谱音轨，长度为{}'.format(len(segments_list), len_))
-		return Sheet(rhythm_mode, segments_list)
+		return Sheet(rhythm_mode, list(segments_list.values()))
 
 	@property
 	def segment_amount(self) -> int:
