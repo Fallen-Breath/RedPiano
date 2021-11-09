@@ -35,30 +35,30 @@ jobs:
         copy readme.md dist/RedPiano
         copy resources/input.txt dist/RedPiano
         copy resources/*.md dist/RedPiano
-        7z a -tzip RedPiano-windows.zip dist/RedPiano
+        7z a -tzip dist/RedPiano-windows.zip dist/RedPiano
 
     - name: Distribute windows exe
       uses: actions/upload-artifact@v2
       with:
-        name: RedPiano-windows
-        path: dist
+        name: 'RedPiano-windows for ${{github.sha}}'
+        path: dist/RedPiano-windows.zip
 
     - name: Pack universal distribution
       run: |
         del dist/RedPiano/main.exe
         python -m zipapp src -m "main:main" -o RedPiano.pyz -c
         copy RedPiano.pyz dist/RedPiano
-        7z a -tzip RedPiano-universal.zip dist/RedPiano
+        7z a -tzip dist/RedPiano-universal.zip dist/RedPiano
 
     - name: Distribute universal zipapp
       uses: actions/upload-artifact@v2
       with:
-        name: RedPiano-universal
-        path: dist
+        name: 'RedPiano-universal for ${{github.sha}}'
+        path: dist/RedPiano-universal.zip
 
     - name: Upload to the Github release
       uses: softprops/action-gh-release@v1
-      if: startsWith(github.ref, 'refs/tags/')
+      if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
       with:
         files: |
           dist/RedPiano-windows.zip
