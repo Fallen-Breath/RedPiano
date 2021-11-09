@@ -8,6 +8,8 @@ from sheet import Sheet
 from symbol import NoteBlockSymbol
 from track import RedPianoTrackItem
 
+VERSION = '3.1.0'
+
 
 def dump_items():
 	storage = ShulkerSheetStorage('音符序列模板盒')
@@ -60,6 +62,8 @@ class FakeStdOut(object):
 
 
 def main():
+	print('====== RedPiano v{} ======'.format(VERSION))
+	print()
 	with FakeStdOut.wrap():
 		try:
 			# dump_items()
