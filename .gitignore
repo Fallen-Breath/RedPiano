@@ -2,10 +2,11 @@
 /dist/
 /.idea/
 /main.spec
-input.txt
-output.txt
+/input.txt
+/output.txt
 gen_items.json
 gen_items_raw.json
+*.pyz
 gen.py
 json_parser.py
 test.py

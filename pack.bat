@@ -1,1 +1,0 @@
-pyinstaller src/main.py -F --noupx
