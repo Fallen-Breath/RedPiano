@@ -35,7 +35,7 @@ jobs:
         copy readme.md dist/RedPiano
         copy resources/input.txt dist/RedPiano
         copy resources/*.md dist/RedPiano
-        7z a -tzip RedPiano-windows.zip RedPiano
+        7z a -tzip RedPiano-windows.zip dist/RedPiano
 
     - name: Distribute windows exe
       uses: actions/upload-artifact@v2
@@ -48,7 +48,7 @@ jobs:
         del dist/RedPiano/main.exe
         python -m zipapp src -m "main:main" -o RedPiano.pyz -c
         copy RedPiano.pyz dist/RedPiano
-        7z a -tzip RedPiano-universal.zip RedPiano
+        7z a -tzip RedPiano-universal.zip dist/RedPiano
 
     - name: Distribute universal zipapp
       uses: actions/upload-artifact@v2

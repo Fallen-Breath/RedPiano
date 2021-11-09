@@ -63,6 +63,7 @@ class FakeStdOut(object):
 
 def main():
 	print('====== RedPiano v{} ======'.format(VERSION))
+	print('RedPiano is open source and licensed under GPL-3.0: https://github.com/Fallen-Breath/RedPiano')
 	print()
 	with FakeStdOut.wrap():
 		try:
