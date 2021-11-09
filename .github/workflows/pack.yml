@@ -31,11 +31,11 @@ jobs:
         pyinstaller src/main.py -F
         mkdir dist/RedPiano
         move dist/main.exe dist/RedPiano
-        copy LICENSE dist/RedPiano
         copy mapping.json dist/RedPiano
         copy readme.md dist/RedPiano
         copy resources/input.txt dist/RedPiano
         copy resources/*.md dist/RedPiano
+        7z a -tzip RedPiano-windows.zip RedPiano
 
     - name: Distribute windows exe
       uses: actions/upload-artifact@v2
@@ -48,9 +48,19 @@ jobs:
         del dist/RedPiano/main.exe
         python -m zipapp src -m "main:main" -o RedPiano.pyz -c
         copy RedPiano.pyz dist/RedPiano
+        7z a -tzip RedPiano-universal.zip RedPiano
 
     - name: Distribute universal zipapp
       uses: actions/upload-artifact@v2
       with:
         name: RedPiano-universal
         path: dist
+
+    - name: Upload to the Github release
+      uses: softprops/action-gh-release@v1
+      if: startsWith(github.ref, 'refs/tags/')
+      with:
+        files: |
+          dist/RedPiano-windows.zip
+          dist/RedPiano-universal.zip
+          LICENSE
