@@ -27,7 +27,7 @@ def dump_items():
 	print()
 
 
-def main():
+def process_sheet():
 	if not os.path.isfile('input.txt'):
 		print('输入文件"input.txt"未找到')
 		return
@@ -59,14 +59,18 @@ class FakeStdOut(object):
 			sys.stdout = wrapper.terminal
 
 
-if __name__ == '__main__':
+def main():
 	with FakeStdOut.wrap():
 		try:
 			# dump_items()
-			main()
+			process_sheet()
 		except:
 			traceback.print_exc()
 			print('漏虫了，可能是输入有虫，也有可能是程序有虫，看看上面说啥')
 	print()
 	print('程序的输出文本也可在output.txt中找到')
 	input('按回车退出程序...')
+
+
+if __name__ == '__main__':
+	main()
