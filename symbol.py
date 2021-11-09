@@ -1,4 +1,4 @@
-from typing import Dict, Tuple
+from typing import Dict, Tuple, Optional
 
 
 class NoteBlockSymbol:
@@ -68,13 +68,16 @@ class SheetSymbol:
 		return '{}{}{}'.format(self.prefix, self.note, self.suffix)
 
 	@classmethod
-	def read(cls, text: str) -> Tuple['SheetSymbol', str]:
+	def read(cls, text: str, prev_symbol: Optional['SheetSymbol'] = None) -> Tuple['SheetSymbol', str]:
 		prefix = ''
 		suffix = ''
 		if not text[0].isdigit():
 			prefix = text[0]
-			assert prefix in '#B', '非法升降记号前缀{}'.format(prefix)
 			text = text[1:]
+			if prefix == '-':
+				assert prev_symbol is not None, '延音符前方未找到音符'
+				return prev_symbol, text
+			assert prefix in '#B', '非法升降记号前缀{}'.format(prefix)
 		assert len(text) > 0 and text[0].isdigit(), '剩余字符串{}首字母不是数字'.format(text)
 		note = int(text[0])
 		text = text[1:]

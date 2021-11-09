@@ -74,26 +74,26 @@ class Sheet:
 
 	def process_data(self):
 		print('节奏模式: {}'.format(self.rhythm_mode.value))
-		prev_symbols = None
+		prev_symbols: Optional[List[SheetSymbol]] = None
 		warn_count = 0
 		for segments in self.segments_list:
 			noteblock_track: NoteBlockSymbolTrack = []
 			for segment in segments:
 				symbols: List[SheetSymbol] = []
-				if segment.text == '-':
-					if self.rhythm_mode == RhythmMode.short_tone:
-						symbols = [SheetSymbol.empty()]
-					else:
-						assert prev_symbols is not None and len(prev_symbols) == 1, '延音符前需要是一个四分音符，但前面却是{}'.format(prev_symbols)
-						symbols = prev_symbols.copy()
+				prev_symbol: SheetSymbol
+				if self.rhythm_mode == RhythmMode.long_tone:
+					prev_symbol = prev_symbols[-1] if prev_symbols is not None and len(prev_symbols) > 0 else None
 				else:
-					text = segment.text
-					while len(text) > 0:
-						try:
-							sheet_symbol, text = SheetSymbol.read(text)
-						except Exception as e:
-							raise ValueError('从{}读取简谱音符失败: {}'.format(text, e))
-						symbols.append(sheet_symbol)
+					prev_symbol = SheetSymbol.empty()
+				text = segment.text
+				while len(text) > 0:
+					try:
+						sheet_symbol, text = SheetSymbol.read(text, prev_symbol)
+					except Exception as e:
+						raise ValueError('从{}读取简谱音符失败: {}'.format(text, e))
+					if self.rhythm_mode == RhythmMode.long_tone:
+						prev_symbol = sheet_symbol
+					symbols.append(sheet_symbol)
 				assert len(symbols) in [1, 2, 4], '空格之间的简谱音符个数{}不合法'.format(len(symbols))
 				prev_symbols = symbols
 				noteblock_symbol_list: List[NoteBlockSymbol] = []

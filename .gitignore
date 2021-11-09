@@ -8,3 +8,4 @@ gen_items.json
 gen_items_raw.json
 gen.py
 json_parser.py
+test.py
